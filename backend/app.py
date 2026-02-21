@@ -61,6 +61,7 @@ def get_budgets():
         {
             "id": b.id,
             "month": b.month,
+            "category": b.category,
             "amount": b.amount
         }
         for b in budgets
@@ -75,6 +76,7 @@ def create_budget():
 
     new_budget = Budget(
         month=data['month'],
+        category=data['category'],
         amount=data['amount'],
         user_id=user_id
     )
