@@ -102,6 +102,7 @@ def get_transactions():
             "id": t.id,
             "amount": t.amount,
             "type": t.type,
+            "category": t.category,
             "description": t.description
         }
         for t in transactions
@@ -117,6 +118,7 @@ def create_transaction():
     new_transaction = Transaction(
         amount=data['amount'],
         type=data['type'],
+        category=data['category'],
         description=data['description'],
         user_id=user_id
     )
