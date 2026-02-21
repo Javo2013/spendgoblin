@@ -7,6 +7,8 @@ export default function Dashboard({ token, username, onLogout }) {
   const [type, setType] = useState("income");
   const [category, setCategory] = useState("Food");
   const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+
   const [exchangeRate, setExchangeRate] = useState(null);
   const [meal, setMeal] = useState(null);
   const [showFullRecipe, setShowFullRecipe] = useState(false);
@@ -52,9 +54,14 @@ export default function Dashboard({ token, username, onLogout }) {
   const handleAddTransaction = async (e) => {
     e.preventDefault();
 
+    if (!date) {
+      alert("Please select a date");
+      return;
+    }
+
     await axios.post(
       "http://127.0.0.1:5000/transactions",
-      { amount: parseFloat(amount), type, category, description },
+      { amount: parseFloat(amount), type, category, description, date },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -62,6 +69,8 @@ export default function Dashboard({ token, username, onLogout }) {
     setType("income");
     setCategory("Food");
     setDescription("");
+    setDate("");
+
     fetchTransactions();
   };
 
@@ -78,13 +87,18 @@ export default function Dashboard({ token, username, onLogout }) {
 
     await axios.post(
       "http://127.0.0.1:5000/budgets",
-      { month: budgetMonth, category: budgetCategory, amount: parseFloat(budgetAmount) },
+      {
+        month: budgetMonth,
+        category: budgetCategory,
+        amount: parseFloat(budgetAmount),
+      },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
     setBudgetMonth("");
     setBudgetAmount("");
     setBudgetCategory("Food");
+
     fetchBudgets();
   };
 
@@ -101,23 +115,42 @@ export default function Dashboard({ token, username, onLogout }) {
     }
   }, [token]);
 
+  // ------------------------
+  // BALANCE
+  // ------------------------
+
   const balance = transactions.reduce((acc, t) => {
     return t.type === "income"
       ? acc + t.amount
       : acc - t.amount;
   }, 0);
 
-  const calculateRemaining = (budget) => {
-  const spent = transactions
-    .filter(
-      (t) =>
-        t.type === "expense" &&
-        t.category === budget.category
-    )
-    .reduce((sum, t) => sum + t.amount, 0);
+  // ------------------------
+  // MONTH FILTER LOGIC
+  // ------------------------
 
-  return budget.amount - spent;
-};
+  const calculateRemaining = (budget) => {
+    const spent = transactions
+      .filter((t) => {
+        const transactionMonth = new Date(t.date).toLocaleString(
+          "default",
+          { month: "long", year: "numeric" }
+        );
+
+        return (
+          t.type === "expense" &&
+          t.category === budget.category &&
+          transactionMonth === budget.month
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return budget.amount - spent;
+  };
+
+  // ------------------------
+  // UI
+  // ------------------------
 
   return (
     <div style={{ padding: "30px" }}>
@@ -132,11 +165,13 @@ export default function Dashboard({ token, username, onLogout }) {
 
       {/* TRANSACTIONS */}
       <h3>Add Transaction</h3>
+
       <form onSubmit={handleAddTransaction}>
         <input
           placeholder="Amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          required
         />
 
         <select value={type} onChange={(e) => setType(e.target.value)}>
@@ -144,7 +179,6 @@ export default function Dashboard({ token, username, onLogout }) {
           <option value="expense">Expense</option>
         </select>
 
-       {/*CATEGORY DROPDOWN */}
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
           <option>Food</option>
           <option>Rent</option>
@@ -152,6 +186,13 @@ export default function Dashboard({ token, username, onLogout }) {
           <option>Entertainment</option>
           <option>Other</option>
         </select>
+
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
 
         <input
           placeholder="Description"
@@ -165,7 +206,10 @@ export default function Dashboard({ token, username, onLogout }) {
       <h3>Transactions</h3>
       {transactions.map((t) => (
         <div key={t.id}>
-          <p>{t.type} - {t.category} - ${t.amount} - {t.description}</p>
+          <p>
+            {t.type} - {t.category} - ${t.amount} - {t.description} -{" "}
+            {t.date}
+          </p>
           <button onClick={() => handleDeleteTransaction(t.id)}>
             Delete
           </button>
@@ -182,15 +226,20 @@ export default function Dashboard({ token, username, onLogout }) {
           placeholder="Month (e.g. January 2026)"
           value={budgetMonth}
           onChange={(e) => setBudgetMonth(e.target.value)}
+          required
         />
 
         <input
           placeholder="Budget Amount"
           value={budgetAmount}
           onChange={(e) => setBudgetAmount(e.target.value)}
+          required
         />
 
-        <select value={budgetCategory} onChange={(e) => setBudgetCategory(e.target.value)}>
+        <select
+          value={budgetCategory}
+          onChange={(e) => setBudgetCategory(e.target.value)}
+        >
           <option>Food</option>
           <option>Rent</option>
           <option>Utilities</option>
@@ -202,26 +251,24 @@ export default function Dashboard({ token, username, onLogout }) {
       </form>
 
       {budgets.map((b) => {
-  const remaining = calculateRemaining(b);
+        const remaining = calculateRemaining(b);
 
-  return (
-    <div key={b.id} style={{ marginBottom: "10px" }}>
-      <p>
-        {b.month} - {b.category} Budget: ${b.amount}
-      </p>
+        return (
+          <div key={b.id} style={{ marginBottom: "10px" }}>
+            <p>
+              {b.month} - {b.category} Budget: ${b.amount}
+            </p>
 
-      <p>
-        Remaining: ${remaining.toFixed(2)}
-      </p>
+            <p>Remaining: ${remaining.toFixed(2)}</p>
 
-      {remaining < 0 && (
-        <p style={{ color: "red" }}>
-          Over budget by ${Math.abs(remaining).toFixed(2)}
-        </p>
-      )}
-    </div>
-  );
-})}
+            {remaining < 0 && (
+              <p style={{ color: "red" }}>
+                Over budget by ${Math.abs(remaining).toFixed(2)}
+              </p>
+            )}
+          </div>
+        );
+      })}
 
       <hr />
 
@@ -232,6 +279,7 @@ export default function Dashboard({ token, username, onLogout }) {
       {meal && (
         <div style={{ marginTop: "15px" }}>
           <h4>{meal.name}</h4>
+
           <img
             src={meal.image}
             width="250"
