@@ -15,7 +15,7 @@ app.config['JWT_SECRET_KEY'] = 'super-secret-key'
 db.init_app(app)
 jwt.init_app(app)
 
-from models import User, Transaction
+from models import User, Transaction, Budget
 
 # -----------------------
 # AUTH ROUTES
@@ -50,6 +50,39 @@ def login():
         })
 
     return jsonify({"message": "Invalid credentials"}), 401
+
+@app.route('/budgets', methods=['GET'])
+@jwt_required()
+def get_budgets():
+    user_id = int(get_jwt_identity())
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+
+    return jsonify([
+        {
+            "id": b.id,
+            "month": b.month,
+            "amount": b.amount
+        }
+        for b in budgets
+    ])
+
+
+@app.route('/budgets', methods=['POST'])
+@jwt_required()
+def create_budget():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    new_budget = Budget(
+        month=data['month'],
+        amount=data['amount'],
+        user_id=user_id
+    )
+
+    db.session.add(new_budget)
+    db.session.commit()
+
+    return jsonify({"message": "Budget created"}), 201
 
 
 # -----------------------
