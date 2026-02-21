@@ -7,6 +7,12 @@ export default function Dashboard({ token, onLogout }) {
   const [type, setType] = useState("income");
   const [description, setDescription] = useState("");
   const [exchangeRate, setExchangeRate] = useState(null);
+  const [meal, setMeal] = useState(null);
+  const [showFullRecipe, setShowFullRecipe] = useState(false);
+
+  // ------------------------
+  // FETCH DATA
+  // ------------------------
 
   const fetchTransactions = async () => {
     const res = await axios.get("http://127.0.0.1:5000/transactions", {
@@ -19,6 +25,16 @@ export default function Dashboard({ token, onLogout }) {
     const res = await axios.get("http://127.0.0.1:5000/exchange-rate");
     setExchangeRate(res.data.USD_to_EUR);
   };
+
+  const fetchMeal = async () => {
+    const res = await axios.get("http://127.0.0.1:5000/cheap-meal");
+    setMeal(res.data);
+    setShowFullRecipe(false); // reset toggle when new meal loads
+  };
+
+  // ------------------------
+  // TRANSACTION HANDLERS
+  // ------------------------
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -42,10 +58,21 @@ export default function Dashboard({ token, onLogout }) {
     fetchTransactions();
   };
 
+  // ------------------------
+  // LOAD ON DASHBOARD START
+  // ------------------------
+
   useEffect(() => {
-    fetchTransactions();
-    fetchExchangeRate();
-  }, []);
+    if (token) {
+      fetchTransactions();
+      fetchExchangeRate();
+      fetchMeal();
+    }
+  }, [token]);
+
+  // ------------------------
+  // BALANCE CALCULATION
+  // ------------------------
 
   const balance = transactions.reduce((acc, t) => {
     return t.type === "income"
@@ -53,8 +80,12 @@ export default function Dashboard({ token, onLogout }) {
       : acc - t.amount;
   }, 0);
 
+  // ------------------------
+  // UI
+  // ------------------------
+
   return (
-    <div>
+    <div style={{ padding: "20px" }}>
       <h2>SpendGoblin Dashboard</h2>
 
       <button onClick={onLogout}>Logout</button>
@@ -64,6 +95,10 @@ export default function Dashboard({ token, onLogout }) {
       {exchangeRate && <p>USD to EUR: {exchangeRate}</p>}
 
       <hr />
+
+      {/* ------------------------
+          ADD TRANSACTION
+      ------------------------ */}
 
       <h3>Add Transaction</h3>
 
@@ -90,6 +125,10 @@ export default function Dashboard({ token, onLogout }) {
 
       <hr />
 
+      {/* ------------------------
+          TRANSACTION LIST
+      ------------------------ */}
+
       <h3>Transactions</h3>
 
       {transactions.map((t) => (
@@ -100,6 +139,43 @@ export default function Dashboard({ token, onLogout }) {
           <button onClick={() => handleDelete(t.id)}>Delete</button>
         </div>
       ))}
+
+      <hr />
+
+      {/* ------------------------
+          MEAL SECTION
+      ------------------------ */}
+
+      <h3>💰 Budget Meal Suggestion</h3>
+
+      <button onClick={fetchMeal}>Get New Meal</button>
+
+      {meal && (
+        <div style={{ marginTop: "15px" }}>
+          <h4>{meal.name}</h4>
+
+          <img
+            src={meal.image}
+            width="250"
+            alt="meal"
+            style={{ borderRadius: "10px" }}
+          />
+
+          <p style={{ marginTop: "10px", maxWidth: "600px" }}>
+            {meal.instructions
+              ? showFullRecipe
+                ? meal.instructions
+                : meal.instructions.substring(0, 200) + "..."
+              : "No instructions available"}
+          </p>
+
+          <button
+            onClick={() => setShowFullRecipe(!showFullRecipe)}
+          >
+            {showFullRecipe ? "Show Less" : "Read More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

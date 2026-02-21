@@ -141,16 +141,11 @@ def get_exchange_rate():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
-
-
 # -----------------------
 # Meal Suggestion API
 # -----------------------
-    @app.route('/cheap-meal', methods=['GET'])
+
+@app.route('/cheap-meal', methods=['GET'])
 def get_cheap_meal():
     try:
         url = "https://www.themealdb.com/api/json/v1/1/random.php"
@@ -167,3 +162,13 @@ def get_cheap_meal():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# -----------------------
+# RUN APP
+# -----------------------
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
