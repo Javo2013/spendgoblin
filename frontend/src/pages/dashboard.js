@@ -9,14 +9,22 @@ export default function Dashboard({ token, username, onLogout }) {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
 
-  const [exchangeRate, setExchangeRate] = useState(null);
-  const [meal, setMeal] = useState(null);
-  const [showFullRecipe, setShowFullRecipe] = useState(false);
-
   const [budgets, setBudgets] = useState([]);
   const [budgetMonth, setBudgetMonth] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
   const [budgetCategory, setBudgetCategory] = useState("Food");
+
+  const [exchangeRate, setExchangeRate] = useState(null);
+  const [meal, setMeal] = useState(null);
+  const [showFullRecipe, setShowFullRecipe] = useState(false);
+
+  // Default selected month = current month
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    })
+  );
 
   // ------------------------
   // FETCH FUNCTIONS
@@ -27,6 +35,13 @@ export default function Dashboard({ token, username, onLogout }) {
       headers: { Authorization: `Bearer ${token}` },
     });
     setTransactions(res.data);
+  };
+
+  const fetchBudgets = async () => {
+    const res = await axios.get("http://127.0.0.1:5000/budgets", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setBudgets(res.data);
   };
 
   const fetchExchangeRate = async () => {
@@ -40,19 +55,17 @@ export default function Dashboard({ token, username, onLogout }) {
     setShowFullRecipe(false);
   };
 
-  const fetchBudgets = async () => {
-    const res = await axios.get("http://127.0.0.1:5000/budgets", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setBudgets(res.data);
-  };
-
   // ------------------------
   // HANDLERS
   // ------------------------
 
   const handleAddTransaction = async (e) => {
     e.preventDefault();
+
+    if (!amount || isNaN(amount)) {
+      alert("Please enter a valid amount");
+      return;
+    }
 
     if (!date) {
       alert("Please select a date");
@@ -103,46 +116,56 @@ export default function Dashboard({ token, username, onLogout }) {
   };
 
   // ------------------------
-  // LOAD DASHBOARD
+  // LOAD DATA
   // ------------------------
 
   useEffect(() => {
     if (token) {
       fetchTransactions();
+      fetchBudgets();
       fetchExchangeRate();
       fetchMeal();
-      fetchBudgets();
     }
   }, [token]);
 
   // ------------------------
-  // BALANCE
+  // FILTER BY SELECTED MONTH
   // ------------------------
 
-  const balance = transactions.reduce((acc, t) => {
+  const filteredTransactions = transactions.filter((t) => {
+    const transactionMonth = new Date(t.date).toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    return transactionMonth === selectedMonth;
+  });
+
+  const filteredBudgets = budgets.filter(
+    (b) => b.month === selectedMonth
+  );
+
+  // ------------------------
+  // BALANCE (MONTH-SPECIFIC)
+  // ------------------------
+
+  const balance = filteredTransactions.reduce((acc, t) => {
     return t.type === "income"
       ? acc + t.amount
       : acc - t.amount;
   }, 0);
 
   // ------------------------
-  // MONTH FILTER LOGIC
+  // REMAINING PER CATEGORY
   // ------------------------
 
   const calculateRemaining = (budget) => {
-    const spent = transactions
-      .filter((t) => {
-        const transactionMonth = new Date(t.date).toLocaleString(
-          "default",
-          { month: "long", year: "numeric" }
-        );
-
-        return (
+    const spent = filteredTransactions
+      .filter(
+        (t) =>
           t.type === "expense" &&
-          t.category === budget.category &&
-          transactionMonth === budget.month
-        );
-      })
+          t.category === budget.category
+      )
       .reduce((sum, t) => sum + t.amount, 0);
 
     return budget.amount - spent;
@@ -157,8 +180,27 @@ export default function Dashboard({ token, username, onLogout }) {
       <h2>Welcome, {username}</h2>
       <button onClick={onLogout}>Logout</button>
 
-      <h3>Current Balance: ${balance.toFixed(2)}</h3>
+      {/* MONTH SELECTOR */}
+      <hr />
+      <h3>Select Month</h3>
+      <input
+        type="month"
+        onChange={(e) => {
+          const [year, month] = e.target.value.split("-");
+          const dateObj = new Date(year, month - 1);
+          const formatted = dateObj.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          });
+          setSelectedMonth(formatted);
+        }}
+      />
 
+      <p>Viewing: {selectedMonth}</p>
+
+      <hr />
+
+      <h3>Current Balance: ${balance.toFixed(2)}</h3>
       {exchangeRate && <p>USD to EUR: {exchangeRate}</p>}
 
       <hr />
@@ -168,6 +210,8 @@ export default function Dashboard({ token, username, onLogout }) {
 
       <form onSubmit={handleAddTransaction}>
         <input
+          type="number"
+          step="0.01"
           placeholder="Amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
@@ -204,11 +248,10 @@ export default function Dashboard({ token, username, onLogout }) {
       </form>
 
       <h3>Transactions</h3>
-      {transactions.map((t) => (
+      {filteredTransactions.map((t) => (
         <div key={t.id}>
           <p>
-            {t.type} - {t.category} - ${t.amount} - {t.description} -{" "}
-            {t.date}
+            {t.type} - {t.category} - ${t.amount} - {t.description} - {t.date}
           </p>
           <button onClick={() => handleDeleteTransaction(t.id)}>
             Delete
@@ -250,7 +293,7 @@ export default function Dashboard({ token, username, onLogout }) {
         <button type="submit">Set Budget</button>
       </form>
 
-      {budgets.map((b) => {
+      {filteredBudgets.map((b) => {
         const remaining = calculateRemaining(b);
 
         return (
