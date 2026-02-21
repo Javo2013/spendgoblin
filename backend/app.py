@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from datetime import datetime
 import requests
 
 from extensions import db, jwt
@@ -103,7 +104,8 @@ def get_transactions():
             "amount": t.amount,
             "type": t.type,
             "category": t.category,
-            "description": t.description
+            "description": t.description,
+            "date": t.date.strftime("%Y-%m-%d")
         }
         for t in transactions
     ])
@@ -116,12 +118,13 @@ def create_transaction():
     data = request.get_json()
 
     new_transaction = Transaction(
-        amount=data['amount'],
-        type=data['type'],
-        category=data['category'],
-        description=data['description'],
-        user_id=user_id
-    )
+    amount=float(data['amount']),
+    type=data['type'],
+    category=data['category'],
+    description=data['description'],
+    date=datetime.strptime(data['date'], "%Y-%m-%d"),
+    user_id=user_id
+)
 
     db.session.add(new_transaction)
     db.session.commit()

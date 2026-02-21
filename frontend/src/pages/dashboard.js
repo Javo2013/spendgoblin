@@ -5,6 +5,7 @@ export default function Dashboard({ token, username, onLogout }) {
   const [transactions, setTransactions] = useState([]);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("income");
+  const [category, setCategory] = useState("Food");
   const [description, setDescription] = useState("");
   const [exchangeRate, setExchangeRate] = useState(null);
   const [meal, setMeal] = useState(null);
@@ -13,6 +14,7 @@ export default function Dashboard({ token, username, onLogout }) {
   const [budgets, setBudgets] = useState([]);
   const [budgetMonth, setBudgetMonth] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
+  const [budgetCategory, setBudgetCategory] = useState("Food");
 
   // ------------------------
   // FETCH FUNCTIONS
@@ -52,11 +54,13 @@ export default function Dashboard({ token, username, onLogout }) {
 
     await axios.post(
       "http://127.0.0.1:5000/transactions",
-      { amount: parseFloat(amount), type, description },
+      { amount: parseFloat(amount), type, category, description },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
     setAmount("");
+    setType("income");
+    setCategory("Food");
     setDescription("");
     fetchTransactions();
   };
@@ -74,12 +78,13 @@ export default function Dashboard({ token, username, onLogout }) {
 
     await axios.post(
       "http://127.0.0.1:5000/budgets",
-      { month: budgetMonth, amount: parseFloat(budgetAmount) },
+      { month: budgetMonth, category: budgetCategory, amount: parseFloat(budgetAmount) },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
     setBudgetMonth("");
     setBudgetAmount("");
+    setBudgetCategory("Food");
     fetchBudgets();
   };
 
@@ -101,6 +106,18 @@ export default function Dashboard({ token, username, onLogout }) {
       ? acc + t.amount
       : acc - t.amount;
   }, 0);
+
+  const calculateRemaining = (budget) => {
+  const spent = transactions
+    .filter(
+      (t) =>
+        t.type === "expense" &&
+        t.category === budget.category
+    )
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  return budget.amount - spent;
+};
 
   return (
     <div style={{ padding: "30px" }}>
@@ -127,6 +144,15 @@ export default function Dashboard({ token, username, onLogout }) {
           <option value="expense">Expense</option>
         </select>
 
+       {/*CATEGORY DROPDOWN */}
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option>Food</option>
+          <option>Rent</option>
+          <option>Utilities</option>
+          <option>Entertainment</option>
+          <option>Other</option>
+        </select>
+
         <input
           placeholder="Description"
           value={description}
@@ -139,7 +165,7 @@ export default function Dashboard({ token, username, onLogout }) {
       <h3>Transactions</h3>
       {transactions.map((t) => (
         <div key={t.id}>
-          <p>{t.type} - ${t.amount} - {t.description}</p>
+          <p>{t.type} - {t.category} - ${t.amount} - {t.description}</p>
           <button onClick={() => handleDeleteTransaction(t.id)}>
             Delete
           </button>
@@ -164,14 +190,38 @@ export default function Dashboard({ token, username, onLogout }) {
           onChange={(e) => setBudgetAmount(e.target.value)}
         />
 
+        <select value={budgetCategory} onChange={(e) => setBudgetCategory(e.target.value)}>
+          <option>Food</option>
+          <option>Rent</option>
+          <option>Utilities</option>
+          <option>Entertainment</option>
+          <option>Other</option>
+        </select>
+
         <button type="submit">Set Budget</button>
       </form>
 
-      {budgets.map((b) => (
-        <div key={b.id}>
-          <p>{b.month} - ${b.amount}</p>
-        </div>
-      ))}
+      {budgets.map((b) => {
+  const remaining = calculateRemaining(b);
+
+  return (
+    <div key={b.id} style={{ marginBottom: "10px" }}>
+      <p>
+        {b.month} - {b.category} Budget: ${b.amount}
+      </p>
+
+      <p>
+        Remaining: ${remaining.toFixed(2)}
+      </p>
+
+      {remaining < 0 && (
+        <p style={{ color: "red" }}>
+          Over budget by ${Math.abs(remaining).toFixed(2)}
+        </p>
+      )}
+    </div>
+  );
+})}
 
       <hr />
 
