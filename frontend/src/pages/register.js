@@ -1,13 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import "./login.css"; // reuse same styling
 
-export default function Register() {
+export default function Register({ switchToLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     try {
@@ -16,32 +15,43 @@ export default function Register() {
         password,
       });
 
-      navigate("/");
+      alert("Account created successfully!");
+      switchToLogin(); // go back to login screen
     } catch (err) {
-      alert("User may already exist");
+      alert("User already exists");
     }
   };
 
   return (
-    <div>
-      <h2>Register</h2>
+    <div className="login-container">
+      <div className="overlay"></div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+      <div className="login-card">
+        <h1>Create Account</h1>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <form onSubmit={handleRegister}>
+          <input
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
 
-        <button type="submit">Register</button>
-      </form>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <button type="submit">Register</button>
+        </form>
+
+        <p className="register-link" onClick={switchToLogin}>
+          Back to Login
+        </p>
+      </div>
     </div>
   );
 }

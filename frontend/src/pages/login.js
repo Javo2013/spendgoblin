@@ -1,13 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import "./login.css";
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, switchToRegister }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
@@ -17,42 +16,42 @@ export default function Login({ onLogin }) {
       });
 
       onLogin(res.data.access_token, res.data.username);
-      navigate("/dashboard");
     } catch (err) {
       alert("Invalid credentials");
     }
   };
 
   return (
-    <div style={{ padding: "40px" }}>
-      <h2>Login</h2>
+    <div className="login-container">
+      <div className="overlay"></div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+      <div className="login-card">
+        <h1>SpendGoblin</h1>
+        <p className="subtitle">Guard Your Gold</p>
 
-        <br /><br />
+        <form onSubmit={handleLogin}>
+          <input
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <br /><br />
+          <button type="submit">Login</button>
+        </form>
 
-        <button type="submit">Login</button>
-      </form>
-
-      <br />
-
-      <button onClick={() => navigate("/register")}>
-        Create Account
-      </button>
+        <p className="register-link" onClick={switchToRegister}>
+          Create Account
+        </p>
+      </div>
     </div>
   );
 }
