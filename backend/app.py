@@ -145,3 +145,25 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
+
+# -----------------------
+# Meal Suggestion API
+# -----------------------
+    @app.route('/cheap-meal', methods=['GET'])
+def get_cheap_meal():
+    try:
+        url = "https://www.themealdb.com/api/json/v1/1/random.php"
+        response = requests.get(url)
+        data = response.json()
+
+        meal = data["meals"][0]
+
+        return jsonify({
+            "name": meal["strMeal"],
+            "image": meal["strMealThumb"],
+            "instructions": meal["strInstructions"]
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
