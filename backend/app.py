@@ -43,7 +43,7 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
 
     if user and check_password_hash(user.password, data['password']):
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify(access_token=access_token)
 
     return jsonify({"message": "Invalid credentials"}), 401
@@ -56,7 +56,7 @@ def login():
 @app.route('/transactions', methods=['GET'])
 @jwt_required()
 def get_transactions():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     transactions = Transaction.query.filter_by(user_id=user_id).all()
 
     return jsonify([
@@ -73,7 +73,7 @@ def get_transactions():
 @app.route('/transactions', methods=['POST'])
 @jwt_required()
 def create_transaction():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     new_transaction = Transaction(
@@ -92,7 +92,7 @@ def create_transaction():
 @app.route('/transactions/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_transaction(id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     transaction = Transaction.query.filter_by(id=id, user_id=user_id).first()
 
     if not transaction:
@@ -111,7 +111,7 @@ def update_transaction(id):
 @app.route('/transactions/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction(id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     transaction = Transaction.query.filter_by(id=id, user_id=user_id).first()
 
     if not transaction:
@@ -129,13 +129,17 @@ def delete_transaction(id):
 
 @app.route('/exchange-rate', methods=['GET'])
 def get_exchange_rate():
-    response = requests.get("https://api.exchangerate.host/latest?base=USD")
-    data = response.json()
+    try:
+        url = "https://open.er-api.com/v6/latest/USD"
+        response = requests.get(url)
+        data = response.json()
 
-    return jsonify({
-        "USD_to_EUR": data['rates']['EUR']
-    })
+        return jsonify({
+            "USD_to_EUR": data["rates"]["EUR"]
+        })
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     with app.app_context():
