@@ -6,23 +6,41 @@ import Register from "./pages/register";
 import Dashboard from "./pages/dashboard";
 
 function App() {
-  const [token, setToken] = useState(null);
+  const [auth, setAuth] = useState({
+    token: null,
+    username: null
+  });
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
-    if (savedToken) {
-      setToken(savedToken);
+    const savedUsername = localStorage.getItem("username");
+
+    if (savedToken && savedUsername) {
+      setAuth({
+        token: savedToken,
+        username: savedUsername
+      });
     }
   }, []);
 
-  const handleLogin = (newToken) => {
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
+  const handleLogin = (token, username) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("username", username);
+
+    setAuth({
+      token,
+      username
+    });
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setToken(null);
+    localStorage.removeItem("username");
+
+    setAuth({
+      token: null,
+      username: null
+    });
   };
 
   return (
@@ -31,7 +49,7 @@ function App() {
         <Route
           path="/"
           element={
-            token ? (
+            auth.token ? (
               <Navigate to="/dashboard" />
             ) : (
               <Login onLogin={handleLogin} />
@@ -42,8 +60,12 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            token ? (
-              <Dashboard token={token} onLogout={handleLogout} />
+            auth.token ? (
+              <Dashboard
+                token={auth.token}
+                username={auth.username}
+                onLogout={handleLogout}
+              />
             ) : (
               <Navigate to="/" />
             )

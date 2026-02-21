@@ -16,7 +16,7 @@ export default function Login({ onLogin }) {
         password,
       });
 
-      onLogin(res.data.access_token);
+      onLogin(res.data.access_token, res.data.username);
       navigate("/dashboard");
     } catch (err) {
       alert("Invalid credentials");
@@ -24,7 +24,7 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div>
+    <div style={{ padding: "40px" }}>
       <h2>Login</h2>
 
       <form onSubmit={handleSubmit}>
@@ -34,6 +34,8 @@ export default function Login({ onLogin }) {
           onChange={(e) => setUsername(e.target.value)}
         />
 
+        <br /><br />
+
         <input
           type="password"
           placeholder="Password"
@@ -41,12 +43,16 @@ export default function Login({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
+        <br /><br />
+
         <button type="submit">Login</button>
       </form>
 
-      <p onClick={() => navigate("/register")}>
+      <br />
+
+      <button onClick={() => navigate("/register")}>
         Create Account
-      </p>
+      </button>
     </div>
   );
 }

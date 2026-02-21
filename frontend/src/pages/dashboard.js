@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-export default function Dashboard({ token, onLogout }) {
+export default function Dashboard({ token, username, onLogout }) {
   const [transactions, setTransactions] = useState([]);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("income");
@@ -10,8 +10,12 @@ export default function Dashboard({ token, onLogout }) {
   const [meal, setMeal] = useState(null);
   const [showFullRecipe, setShowFullRecipe] = useState(false);
 
+  const [budgets, setBudgets] = useState([]);
+  const [budgetMonth, setBudgetMonth] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("");
+
   // ------------------------
-  // FETCH DATA
+  // FETCH FUNCTIONS
   // ------------------------
 
   const fetchTransactions = async () => {
@@ -29,14 +33,21 @@ export default function Dashboard({ token, onLogout }) {
   const fetchMeal = async () => {
     const res = await axios.get("http://127.0.0.1:5000/cheap-meal");
     setMeal(res.data);
-    setShowFullRecipe(false); // reset toggle when new meal loads
+    setShowFullRecipe(false);
+  };
+
+  const fetchBudgets = async () => {
+    const res = await axios.get("http://127.0.0.1:5000/budgets", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setBudgets(res.data);
   };
 
   // ------------------------
-  // TRANSACTION HANDLERS
+  // HANDLERS
   // ------------------------
 
-  const handleAdd = async (e) => {
+  const handleAddTransaction = async (e) => {
     e.preventDefault();
 
     await axios.post(
@@ -50,7 +61,7 @@ export default function Dashboard({ token, onLogout }) {
     fetchTransactions();
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteTransaction = async (id) => {
     await axios.delete(`http://127.0.0.1:5000/transactions/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -58,8 +69,22 @@ export default function Dashboard({ token, onLogout }) {
     fetchTransactions();
   };
 
+  const handleAddBudget = async (e) => {
+    e.preventDefault();
+
+    await axios.post(
+      "http://127.0.0.1:5000/budgets",
+      { month: budgetMonth, amount: parseFloat(budgetAmount) },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setBudgetMonth("");
+    setBudgetAmount("");
+    fetchBudgets();
+  };
+
   // ------------------------
-  // LOAD ON DASHBOARD START
+  // LOAD DASHBOARD
   // ------------------------
 
   useEffect(() => {
@@ -67,12 +92,9 @@ export default function Dashboard({ token, onLogout }) {
       fetchTransactions();
       fetchExchangeRate();
       fetchMeal();
+      fetchBudgets();
     }
   }, [token]);
-
-  // ------------------------
-  // BALANCE CALCULATION
-  // ------------------------
 
   const balance = transactions.reduce((acc, t) => {
     return t.type === "income"
@@ -80,29 +102,20 @@ export default function Dashboard({ token, onLogout }) {
       : acc - t.amount;
   }, 0);
 
-  // ------------------------
-  // UI
-  // ------------------------
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>SpendGoblin Dashboard</h2>
-
+    <div style={{ padding: "30px" }}>
+      <h2>Welcome, {username}</h2>
       <button onClick={onLogout}>Logout</button>
 
-      <h3>Balance: ${balance.toFixed(2)}</h3>
+      <h3>Current Balance: ${balance.toFixed(2)}</h3>
 
       {exchangeRate && <p>USD to EUR: {exchangeRate}</p>}
 
       <hr />
 
-      {/* ------------------------
-          ADD TRANSACTION
-      ------------------------ */}
-
+      {/* TRANSACTIONS */}
       <h3>Add Transaction</h3>
-
-      <form onSubmit={handleAdd}>
+      <form onSubmit={handleAddTransaction}>
         <input
           placeholder="Amount"
           value={amount}
@@ -123,37 +136,52 @@ export default function Dashboard({ token, onLogout }) {
         <button type="submit">Add</button>
       </form>
 
-      <hr />
-
-      {/* ------------------------
-          TRANSACTION LIST
-      ------------------------ */}
-
       <h3>Transactions</h3>
-
       {transactions.map((t) => (
         <div key={t.id}>
-          <p>
-            {t.type} - ${t.amount} - {t.description}
-          </p>
-          <button onClick={() => handleDelete(t.id)}>Delete</button>
+          <p>{t.type} - ${t.amount} - {t.description}</p>
+          <button onClick={() => handleDeleteTransaction(t.id)}>
+            Delete
+          </button>
         </div>
       ))}
 
       <hr />
 
-      {/* ------------------------
-          MEAL SECTION
-      ------------------------ */}
+      {/* BUDGETS */}
+      <h3>Monthly Budgets</h3>
 
+      <form onSubmit={handleAddBudget}>
+        <input
+          placeholder="Month (e.g. January 2026)"
+          value={budgetMonth}
+          onChange={(e) => setBudgetMonth(e.target.value)}
+        />
+
+        <input
+          placeholder="Budget Amount"
+          value={budgetAmount}
+          onChange={(e) => setBudgetAmount(e.target.value)}
+        />
+
+        <button type="submit">Set Budget</button>
+      </form>
+
+      {budgets.map((b) => (
+        <div key={b.id}>
+          <p>{b.month} - ${b.amount}</p>
+        </div>
+      ))}
+
+      <hr />
+
+      {/* MEAL SECTION */}
       <h3>💰 Budget Meal Suggestion</h3>
-
       <button onClick={fetchMeal}>Get New Meal</button>
 
       {meal && (
         <div style={{ marginTop: "15px" }}>
           <h4>{meal.name}</h4>
-
           <img
             src={meal.image}
             width="250"
@@ -161,17 +189,13 @@ export default function Dashboard({ token, onLogout }) {
             style={{ borderRadius: "10px" }}
           />
 
-          <p style={{ marginTop: "10px", maxWidth: "600px" }}>
-            {meal.instructions
-              ? showFullRecipe
-                ? meal.instructions
-                : meal.instructions.substring(0, 200) + "..."
-              : "No instructions available"}
+          <p style={{ maxWidth: "600px" }}>
+            {showFullRecipe
+              ? meal.instructions
+              : meal.instructions.substring(0, 200) + "..."}
           </p>
 
-          <button
-            onClick={() => setShowFullRecipe(!showFullRecipe)}
-          >
+          <button onClick={() => setShowFullRecipe(!showFullRecipe)}>
             {showFullRecipe ? "Show Less" : "Read More"}
           </button>
         </div>
