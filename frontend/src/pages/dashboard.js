@@ -31,26 +31,26 @@ export default function Dashboard({ token, username, onLogout }) {
   // ------------------------
 
   const fetchTransactions = async () => {
-    const res = await axios.get("http://127.0.0.1:5000/transactions", {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/transactions`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setTransactions(res.data);
   };
 
   const fetchBudgets = async () => {
-    const res = await axios.get("http://127.0.0.1:5000/budgets", {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/budgets`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setBudgets(res.data);
   };
 
   const fetchExchangeRate = async () => {
-    const res = await axios.get("http://127.0.0.1:5000/exchange-rate");
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/exchange-rate`);
     setExchangeRate(res.data.USD_to_EUR);
   };
 
   const fetchMeal = async () => {
-    const res = await axios.get("http://127.0.0.1:5000/cheap-meal");
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/cheap-meal`);
     setMeal(res.data);
     setShowFullRecipe(false);
   };
@@ -82,7 +82,7 @@ export default function Dashboard({ token, username, onLogout }) {
     }
 
     await axios.post(
-      "http://127.0.0.1:5000/transactions",
+      `${process.env.REACT_APP_API_URL}/transactions`,
       { amount: parseFloat(amount), type, category, description, date },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -96,7 +96,7 @@ export default function Dashboard({ token, username, onLogout }) {
   };
 
   const handleDeleteTransaction = async (id) => {
-    await axios.delete(`http://127.0.0.1:5000/transactions/${id}`, {
+    await axios.delete(`${process.env.REACT_APP_API_URL}/transactions/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchTransactions();
@@ -106,7 +106,7 @@ export default function Dashboard({ token, username, onLogout }) {
     e.preventDefault();
 
     await axios.post(
-      "http://127.0.0.1:5000/budgets",
+      `${process.env.REACT_APP_API_URL}/budgets`,
       {
         month: budgetMonth,
         category: budgetCategory,

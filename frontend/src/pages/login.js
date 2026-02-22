@@ -10,7 +10,7 @@ export default function Login({ onLogin, switchToRegister }) {
     e.preventDefault();
 
     try {
-      const res = await axios.post("http://127.0.0.1:5000/login", {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/login`, {
         username,
         password,
       });
