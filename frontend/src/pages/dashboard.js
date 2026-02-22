@@ -56,13 +56,15 @@ export default function Dashboard({ token, username, onLogout }) {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchTransactions();
-      fetchBudgets();
-      fetchExchangeRate();
-      fetchMeal();
+  if (token) {
+    fetchTransactions();
+    fetchBudgets();
+    fetchExchangeRate();
+    fetchMeal();
     }
-  }, [token]);
+
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [token]);
 
   // ------------------------
   // HANDLERS
